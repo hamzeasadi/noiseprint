@@ -67,9 +67,8 @@ class Disc(nn.Module):
 if __name__ == "__main__":
     print(__file__)
 
-    # model = Noiseprint(input_ch=3, output_ch=1)
-    model = Disc(inch=1)
-    x = torch.randn(size=(1,1,64,64))
+    model = Noiseprint(input_ch=3, output_ch=1)
+    x = torch.randn(size=(1,3,64,64))
 
     out = model(x)
     print(model)

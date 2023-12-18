@@ -4,7 +4,8 @@ general utility functions
 
 import os
 import pickle
-from typing import Any
+import json
+from typing import Any, Dict
 from dataclasses import dataclass
 
 
@@ -53,6 +54,12 @@ def save_as_pickle(file_name:str, file_path:str, data:Any):
         pickle.dump(obj=data, file=pickle_file)
 
 
+
+
+def load_json(file_path:str)->Dict:
+    with open(file_path, "r") as json_file:
+        json_data = json.load(json_file)
+    return json_data
 
 
 

@@ -16,10 +16,11 @@ from PIL import Image
 from matplotlib import pyplot as plt
 import torch
 
-# from noiseprint.noiseprint.Dataset.preprocess import get_video_frames
+from noiseprint.noiseprint.Dataset.utils import get_video_frames
 from noiseprint.noiseprint.Utils.gutils import Paths
 from noiseprint.noiseprint.Prnu import utils
-
+from noiseprint.noiseprint.Dataset.preprocess import central_crop, intensity_croping
+from noiseprint.noiseprint.Utils.gutils import save_as_pickle
 
 
 def get_prnu_np(stack_imgs:torch.Tensor):
@@ -111,19 +112,39 @@ def main():
 
         # endregion
         
-    parser = argparse.ArgumentParser(prog=os.path.basename(__file__), description="prnu extraction config")
-    parser.add_argument("--cam_name", type=int, required=True)
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser(prog=os.path.basename(__file__), description="prnu extraction config")
+    # parser.add_argument("--cam_name", type=int, required=True)
+    # args = parser.parse_args()
 
     paths = Paths()
-    video_cam_prnu = VideoCamPrnuExtract(paths=paths)
-    video_cam_prnu.get_np_frames(cam_name=args.cam_name)
+    hh = 720//2
+    wh = 1280//2
+    dataset_root = "/home/hasadi/project/Dataset/vision"
+    for cam_name in os.listdir(dataset_root):
+        flat_path = os.path.join(dataset_root, cam_name, "videos", "flat")
+        frames = 0
+        for i, flat_video in enumerate(os.listdir(flat_path)):
+            video_path = os.path.join(flat_path, flat_video)
+            if i==0:
+                frames = get_video_frames(video_path=video_path, fmt="THWC")
+                
+            else:
+                new_frames = get_video_frames(video_path=video_path, fmt="THWC")
+                frames = torch.cat((frames, new_frames), dim=0)
+        fshape = frames.shape
+        print(cam_name)
+        print(f"frame-size: {fshape}")
+        frames = central_crop(imgs=frames, crop_limit=[720, 1280])
+        print(f"crop-size: {frames.shape}")
+        k = get_prnu_np(stack_imgs=frames)
+        kn = (k - np.min(k))/(np.max(k) - np.min(k)+1e-8)
+        print(f"k-shape {kn.shape}")
+        save_path = os.path.join(paths.dataset, "vision", cam_name, "prnu")
+        save_as_pickle(file_name=f"{cam_name}_prnu.pkl", file_path=save_path, data=dict(prnu=k))
+        intensity_croping(intensity=np.expand_dims(kn, axis=0), crop_size=[64, 64], frame_size=[720, 1280], 
+                          sample_counter=0, save_base=save_path, cam_name=cam_name)
+        print("==="*20)
 
-    # K = np.fromfile(f"data/prnu/{args.cam_name}_prnu.raw", sep=" ", dtype=np.float32).reshape(1080, 1920)
-    # plt.imshow(K, cmap="gray")
-    # plt.axis("off")
-    # plt.savefig(f"data/figs/{args.cam_name}_prnu.png", bbox_inches='tight', pad_inches=0)
-    # plt.close()
 
 
 

@@ -14,48 +14,8 @@ from torchvision.io import read_video
 
 from noiseprint.noiseprint.Utils.gutils import save_as_pickle
 from noiseprint.noiseprint.Utils.gutils import Paths
-from noiseprint.noiseprint.Dataset.utils import get_video_frames
-from noiseprint.noiseprint.Prnu.utils import rgb2gray
-from noiseprint.noiseprint.Prnu.prnu import get_prnu_np
+from noiseprint.noiseprint.Dataset.utils import get_video_frames, central_crop, intensity_croping, rgb2gray_pack
 
-def rgb2gray_pack(pack:torch.Tensor, num_frame_per_pack:int=3):
-    intensity_list = []
-    for sample_idx in range(num_frame_per_pack):
-        sample = pack[sample_idx]
-        intensity = rgb2gray(im=sample.numpy())
-        intensity_list.append(np.expand_dims(intensity, axis=0))
-    
-    pack_intensity = np.concatenate(intensity_list, axis=0)
-    return pack_intensity
-
-
-
-def intensity_croping(intensity:np.ndarray, crop_size:List, frame_size:List, sample_counter:int, save_base:str, cam_name:str|int):
-    crop_counter = 0
-    hc, wc = crop_size
-    num_h = frame_size[0]//hc
-    num_w = frame_size[1]//wc
-    for i in range(num_h):
-        hi = i*hc
-        for j in range(num_w):
-            wj = j*wc
-            crop = intensity[:, hi:hi+hc, wj:wj+wc]
-            data = dict(crop=crop, label=int(cam_name))
-            crop_name = f"crop_{sample_counter}.pkl"
-            save_path = os.path.join(save_base, f"crop_{crop_counter}")
-            save_as_pickle(file_name=crop_name, file_path=save_path, data=data)
-            crop_counter += 1
-            
-
-    
-
-def central_crop(imgs:torch.Tensor, crop_limit:List):
-    t, h, w, c = imgs.shape
-    hc = h//2
-    wc = w//2
-    hh, hw = crop_limit[0]//2, crop_limit[1]//2
-    central_crop = imgs[:, hc-hh:hc+hh, wc-hw:wc+hw, :]
-    return central_crop
 
 
 
@@ -135,11 +95,51 @@ class Vison_video_sampling:
             self.get_cam_samples(cam_name=cam_name)
             
 
-        
-        
 
 
 
+def extract_samples(root_dir:str, dataset_name:str, seq_len:int=3, num_samples:int=400, paths:Paths=Paths()):
+    dataset_path = os.path.join(root_dir, dataset_name)
+    crop_counter = 0
+    for cam_name in os.listdir(dataset_path):
+        cam_path = os.path.join(dataset_path, cam_name)
+        for i, video_name in enumerate(os.listdir(cam_path)):
+            video_path = os.path.join(cam_path, video_name)
+            try:
+                if i==0:
+                    frames = get_video_frames(video_path=video_path, fmt="THWC")
+                else:
+                    new_frames = get_video_frames(video_path=video_path, fmt="THWC")
+                    frames = torch.cat((frames, new_frames), dim=0)
+            except Exception as e:
+                print(f"{cam_name}: {video_name} : {e}")
+
+        frames = central_crop(imgs=frames, crop_limit=[720, 1280])
+        t,h,w,c = frames.shape
+        indices = np.linspace(start=0, stop=t-seq_len, num=num_samples)
+        smple_counter = 0
+        for index in indices:
+            idx = int(index)
+            seq_frames = frames[idx:idx+seq_len]
+            seq_intensity = rgb2gray_pack(pack=seq_frames, num_frame_per_pack=seq_len)
+            cam_crop_counter = 0
+            num_h, num_w = h//64, w//64
+            counter = crop_counter*(num_h*num_w)
+            
+            for h_idx in range(num_h):
+                hi = h_idx*64
+                for w_idx in range(num_w):
+                    wi = w_idx*64
+                    crop = seq_intensity[:, hi:hi+64, wi:wi+64]
+                    data = dict(crop=crop, label=cam_crop_counter+counter)
+                    sav_path = os.path.join(paths.dataset, dataset_name, f"crop_{cam_crop_counter+counter}")
+                    save_as_pickle(file_name=f"patch_{smple_counter}.pkl", file_path=sav_path, data=data)
+                    cam_crop_counter += 1
+            smple_counter += 1
+
+        crop_counter += 1
+
+            
 
 
 
@@ -153,18 +153,10 @@ def main():
     """docs"""
 
     paths = Paths()
+    video_ext = "/home/hasadi/project/Dataset"
+    dataset_name = "socraties"
 
-    root_ext_path = "/home/hasadi/project/Dataset"
-    sample_per_type = dict(flat=50, indoor=100, outdoor=150)
-    vision_video_sampling = Vison_video_sampling(dataset_name="vision", central_crop_size=[720, 1280], crop_size=[64, 64], 
-                 num_samples=sample_per_type, paths=paths, videos_dir=root_ext_path)
-
-    
-    
-    vision_video_sampling.run()
-
-
-
+    extract_samples(root_dir=video_ext, dataset_name=dataset_name)
 
 
 if __name__ == "__main__":
