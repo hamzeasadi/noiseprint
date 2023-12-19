@@ -27,61 +27,6 @@ def odd_eve_lbl(batch_size:int):
 
 
 
-
-def init_train(gen:nn.Module, disc:nn.Module, gen_opt:Optimizer, disc_opt:Optimizer, gen_sch:nn.Module, paths,
-               disc_sch:nn.Module, gen_crt:nn.Module, disc_crt:nn.Module, dataset:List, epoch:int, dev:torch.device):
-    
-    gen.to(dev)
-    gen.train()
-    disc.to(dev)
-    disc.train()
-    train_loss = 0
-    batch_cnt = 0
-    for bbatch in zip(*dataset):
-        X, Y = create_batch(batch=bbatch)
-        bs, _, _, _ = X.shape
-        out = gen(X.to(dev))
-        odd_idx, even_idx = odd_eve_lbl(batch_size=bs)
-        fake = out[odd_idx].detach()
-        real = out[even_idx].detach()
-
-        disc_fake = disc(fake)
-        disc_real = disc(real)
-
-        disc_loss = disc_crt(disc_real - disc_fake, torch.ones_like(disc_real, requires_grad=False))
-        disc_opt.zero_grad()
-        disc_loss.backward()
-        disc_opt.step()
-
-
-        gen_loss = gen_crt(embeddings=out, labels=Y.to(dev), psd_flag=True, epoch=1)
-        disc_real = disc(out[even_idx])
-        disc_fake = disc(out[odd_idx])
-        disc_loss = disc_crt(disc_fake - disc_real, torch.ones_like(disc_real, requires_grad=False))
-        loss = disc_loss + gen_loss
-        print(loss.item())
-        gen_opt.zero_grad()
-        loss.backward()
-        gen_opt.step()
-
-        train_loss += loss.item()
-        batch_cnt += 1
-
-    if gen_sch is not None:
-        gen_sch.step()
-    
-    if disc_sch is not None:
-        disc_sch.step()
-
-    state = dict(model=gen.state_dict(), epoch=epoch, loss=train_loss/batch_cnt)
-
-    print(f"epoch={epoch} loss={train_loss/batch_cnt}")
-
-    torch.save(obj=state, f=os.path.join(paths.model, f"ckpoint_{epoch}.pt"))
-
-
-
-
 def np_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, dev:torch.device,
              gen_sch:nn.Module, dataloader:DataLoader, epoch:int, paths):
     print(epoch)
@@ -105,3 +50,76 @@ def np_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, dev:torch.devi
     
     state = dict(model=gen.eval().state_dict(), loss=train_loss/num_batches, epoch=epoch)
     torch.save(state, f=os.path.join(paths.model, f"np_ckpoint_{epoch}.pt"))
+
+
+
+
+
+
+def rgan_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.Module,
+               disc:nn.Module, disc_opt:Optimizer, disc_crt:nn.Module, disc_sch:nn.Module,
+               dataloader:DataLoader, epoch:int, dev:torch.device, paths):
+    
+    train_loss = 0
+    num_batches = len(dataloader)
+    gen.to(dev)
+    disc.to(dev)
+    gen.train()
+    disc.train()
+
+    for X, Y in dataloader:
+        b,c,h,w = X.shape
+        out = gen(X.to(dev))
+        odd_indices, even_indices = odd_eve_lbl(batch_size=b)
+        fake = out[odd_indices].detach()
+        real = out[even_indices].detach()
+
+        # train discriminator
+        disc_fake = disc(fake)
+        disc_real = disc(real)
+        disc_loss = disc_crt(disc_real - disc_fake.mean(dim=0, keepdim=True), torch.ones_like(disc_real, requires_grad=False))
+        disc_opt.zero_grad()
+        disc_loss.backward()
+        disc_opt.step()
+
+        # train generator
+        disc_fake = disc(out[odd_indices])
+        disc_real = disc(out[even_indices])
+        disc_loss = disc_crt(disc_fake - disc_real.mean(dim=0, keepdim=True), torch.ones_like(disc_real, requires_grad=False))
+        gen_loss = disc_loss + gen_crt(out)
+        gen_opt.zero_grad()
+        gen_loss.backward()
+        gen_opt.step()
+
+        train_loss += gen_loss.item()
+    
+    if gen_sch is not None:
+        gen_sch.step()
+    
+    if disc_sch is not None:
+        disc_sch.step()
+
+    
+    state = dict(model=gen.eval().state_dict(), epoch=epoch, loss=train_loss/num_batches)
+    torch.save(obj=state, f=os.path.join(paths.model, f"gan_chpoint_{epoch}.pt"))
+    print(f"epoch={epoch} loss={train_loss/num_batches}")
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    print(__file__)
+
+    x = torch.randn(size=(10, 1))
+    print(x)
+    print(x.mean(dim=0, keepdim=True))

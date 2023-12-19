@@ -9,14 +9,15 @@ import sys
 sys.path.append("../")
 
 import torch
+from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
 
 from noiseprint.noiseprint.Dataset.dataset import create_loader
 from noiseprint.noiseprint.Utils.gutils import Paths
-from noiseprint.noiseprint.Networks.network import Noiseprint
+from noiseprint.noiseprint.Networks.network import Noiseprint, Disc
 from noiseprint.noiseprint.LossFunctions.loss_functions import NP_Loss
-from noiseprint.noiseprint.Engine.engine import np_train
+from noiseprint.noiseprint.Engine.engine import rgan_train
 
 
 
@@ -28,10 +29,12 @@ def main():
 
     parser = argparse.ArgumentParser(prog=os.path.basename(__file__), description="sth")
 
-    parser.add_argument("--dev", type=str, default="cuda:0")
-    parser.add_argument("--lamda", type=float, default=10.0)
+    parser.add_argument("--dev", type=str, default="cuda")
+    parser.add_argument("--lamda", type=float, default=1.0)
     parser.add_argument("--glr", type=float, default=0.001)
     parser.add_argument("--ggamma", type=float, default=0.9)
+    parser.add_argument("--dlr", type=float, default=0.001)
+    parser.add_argument("--dgamma", type=float, default=0.9)
     parser.add_argument("--epochs", type=int, default=1000)
     args = parser.parse_args()
 
@@ -40,11 +43,18 @@ def main():
 
     loader = create_loader()
     print("loader created!!!")
+
     Gen = Noiseprint(input_ch=3, output_ch=1, num_layer=15)
     gen_crt = NP_Loss(lamda=args.lamda)
     gen_crt.to(dev)
     gen_opt = Adam(params=Gen.parameters(), lr=args.glr)
     gen_sch = ExponentialLR(optimizer=gen_opt, gamma=args.ggamma)
+
+    disc = Disc(inch=1)
+    disc_crt = nn.BCEWithLogitsLoss()
+    disc_crt.to(dev)
+    disc_opt = Adam(params=disc.parameters(), lr=args.dlr)
+    disc_sch = ExponentialLR(optimizer=disc_opt, gamma=args.dgamma)
 
 
     print(args)
@@ -52,8 +62,9 @@ def main():
 
 
     for epoch in range(args.epochs):
-        np_train(gen=Gen, gen_opt=gen_opt, gen_crt=gen_crt, gen_sch=gen_sch, 
-                 dataloader=loader, dev=dev, epoch=epoch, paths=paths)
+        rgan_train(gen=Gen, gen_opt=gen_opt, gen_crt=gen_crt, gen_sch=gen_sch,
+                   disc=disc, disc_opt=disc_opt, disc_crt=disc_crt, disc_sch=disc_sch,
+                   dataloader=loader, epoch=epoch, dev=dev, paths=paths)
 
 
 
