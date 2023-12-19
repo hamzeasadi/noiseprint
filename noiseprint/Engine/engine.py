@@ -13,7 +13,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 
-from noiseprint.noiseprint.Dataset.dataset import create_batch
+# from noiseprint.noiseprint.Dataset.dataset import create_batch
 
 
 
@@ -84,6 +84,7 @@ def init_train(gen:nn.Module, disc:nn.Module, gen_opt:Optimizer, disc_opt:Optimi
 
 def np_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, dev:torch.device,
              gen_sch:nn.Module, dataloader:DataLoader, epoch:int, paths):
+    print(epoch)
     train_loss = 0
     gen.to(dev)
     gen.train()
@@ -98,7 +99,7 @@ def np_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, dev:torch.devi
         train_loss+=loss.item()
         if cntr%10==0:
             print(f"epoch={epoch} loss={train_loss/10}")
-        
+
         cntr+=1
 
     

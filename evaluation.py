@@ -5,11 +5,11 @@ docs
 import os
 import sys
 sys.path.append("../")
+import argparse
 
 import numpy as np
 from PIL import Image
 from matplotlib import pyplot as plt
-
 import torch
 from torch import nn
 from torch.optim import Adam
@@ -46,12 +46,17 @@ def main():
     """
     docs
     """
+    parser = argparse.ArgumentParser(prog=os.path.basename(__file__), description="evaluation checkpoint")
+    parser.add_argument("--ckpn", type=int, required=True)
+    args = parser.parse_args()
+
+
     paths = Paths()
     num_samples = 1
     video_name = "forged_YT720.mp4"
     video_path = os.path.join(paths.dataset, "valid", video_name)
 
-    ckp_path = os.path.join(paths.model, f"ckpoint_{4}.pt")
+    ckp_path = os.path.join(paths.model, f"np_ckpoint_{args.ckpn}.pt")
     state = torch.load(ckp_path, map_location=torch.device("cpu"))
     model = Noiseprint(input_ch=3, output_ch=1, num_layer=15)
     model.load_state_dict(state['model'])

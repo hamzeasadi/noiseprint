@@ -28,9 +28,9 @@ def main():
 
     parser = argparse.ArgumentParser(prog=os.path.basename(__file__), description="sth")
 
-    parser.add_argument("--dev", type=str, default="cuda")
+    parser.add_argument("--dev", type=str, default="cuda:0")
     parser.add_argument("--lamda", type=float, default=10.0)
-    parser.add_argument("--glr", type=float, default=0.01)
+    parser.add_argument("--glr", type=float, default=0.001)
     parser.add_argument("--ggamma", type=float, default=0.9)
     parser.add_argument("--epochs", type=int, default=1000)
     args = parser.parse_args()
@@ -39,11 +39,17 @@ def main():
     dev = torch.device(args.dev)
 
     loader = create_loader()
+    print("loader created!!!")
     Gen = Noiseprint(input_ch=3, output_ch=1, num_layer=15)
     gen_crt = NP_Loss(lamda=args.lamda)
+    gen_crt.to(dev)
     gen_opt = Adam(params=Gen.parameters(), lr=args.glr)
     gen_sch = ExponentialLR(optimizer=gen_opt, gamma=args.ggamma)
-    
+
+
+    print(args)
+    print(dev)
+
 
     for epoch in range(args.epochs):
         np_train(gen=Gen, gen_opt=gen_opt, gen_crt=gen_crt, gen_sch=gen_sch, 
