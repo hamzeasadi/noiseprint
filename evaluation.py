@@ -20,7 +20,7 @@ from noiseprint.noiseprint.Networks.network import Disc, Noiseprint
 from noiseprint.noiseprint.Dataset.utils import get_video_frames, rgb2gray_pack
 
 
-def evaluation(model:nn.Module, video_path:str, num_seq:int=1, paths=Paths()):
+def evaluation(model:nn.Module, video_path:str, base_name:str, num_seq:int=1, paths=Paths()):
     frames = get_video_frames(video_path=video_path, fmt="THWC")
     model.eval()
     for idx in range(num_seq):
@@ -32,7 +32,7 @@ def evaluation(model:nn.Module, video_path:str, num_seq:int=1, paths=Paths()):
         vmax = np.max(out[34:-34,34:-34])
         plt.imshow(out.clip(vmin,vmax), clim=[vmin,vmax], cmap='gray')
         plt.axis('off')
-        plt.savefig(os.path.join(paths.report, f"res_{idx}.png"), bbox_inches='tight', pad_inches=0)
+        plt.savefig(os.path.join(paths.report, f"{base_name}.png"), bbox_inches='tight', pad_inches=0)
         plt.close()
 
 
@@ -47,7 +47,8 @@ def main():
     docs
     """
     parser = argparse.ArgumentParser(prog=os.path.basename(__file__), description="evaluation checkpoint")
-    parser.add_argument("--ckpn", type=int, required=True)
+    parser.add_argument("--ckp_num", type=int, required=True)
+    parser.add_argument("--ckp_name", type=str, required=True)
     args = parser.parse_args()
 
 
@@ -56,12 +57,15 @@ def main():
     video_name = "forged_YT720.mp4"
     video_path = os.path.join(paths.dataset, "valid", video_name)
 
-    ckp_path = os.path.join(paths.model, f"np_ckpoint_{args.ckpn}.pt")
+    ckp_base_name = f"{args.ckp_name}_{args.ckp_num}"
+    ckp_path = os.path.join(paths.model, f"{ckp_base_name}.pt")
     state = torch.load(ckp_path, map_location=torch.device("cpu"))
+    print(f"epoch={state['epoch']} loss={state['loss']}")
+
     model = Noiseprint(input_ch=3, output_ch=1, num_layer=15)
     model.load_state_dict(state['model'])
 
-    evaluation(model=model, video_path=video_path, num_seq=num_samples)
+    evaluation(model=model, video_path=video_path, num_seq=num_samples, base_name=ckp_base_name)
 
 
 
