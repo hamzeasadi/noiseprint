@@ -66,7 +66,7 @@ def rgan_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.M
     disc.to(dev)
     gen.train()
     disc.train()
-
+    cntr = 0
     for X, Y in dataloader:
         b,c,h,w = X.shape
         out = gen(X.to(dev))
@@ -86,13 +86,18 @@ def rgan_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.M
         disc_fake = disc(out[odd_indices])
         disc_real = disc(out[even_indices])
         disc_loss = disc_crt(disc_fake - disc_real.mean(dim=0, keepdim=True), torch.ones_like(disc_real, requires_grad=False))
-        gen_loss = disc_loss + gen_crt(out)
+        gen_loss = disc_loss + gen_crt(embeddings=out, labels=Y.to(dev))
         gen_opt.zero_grad()
         gen_loss.backward()
         gen_opt.step()
 
         train_loss += gen_loss.item()
-    
+
+        if cntr%100 == 0:
+            print(f"epoch={epoch} loss={gen_loss.item()}")
+        cntr += 1
+
+
     if gen_sch is not None:
         gen_sch.step()
     
@@ -101,7 +106,7 @@ def rgan_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.M
 
     
     state = dict(model=gen.eval().state_dict(), epoch=epoch, loss=train_loss/num_batches)
-    torch.save(obj=state, f=os.path.join(paths.model, f"gan_chpoint_{epoch}.pt"))
+    torch.save(obj=state, f=os.path.join(paths.model, f"gan_ckpoint_{epoch}.pt"))
     print(f"epoch={epoch} loss={train_loss/num_batches}")
 
 

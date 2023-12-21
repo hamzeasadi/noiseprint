@@ -31,10 +31,10 @@ def main():
 
     parser.add_argument("--dev", type=str, default="cuda")
     parser.add_argument("--lamda", type=float, default=1.0)
-    parser.add_argument("--glr", type=float, default=0.001)
-    parser.add_argument("--ggamma", type=float, default=0.9)
+    parser.add_argument("--glr", type=float, default=0.0001)
+    parser.add_argument("--ggamma", type=float, default=0.99)
     parser.add_argument("--dlr", type=float, default=0.001)
-    parser.add_argument("--dgamma", type=float, default=0.9)
+    parser.add_argument("--dgamma", type=float, default=0.99)
     parser.add_argument("--epochs", type=int, default=1000)
     args = parser.parse_args()
 

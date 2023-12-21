@@ -21,9 +21,25 @@ class NP_Loss(nn.Module):
         super().__init__(*args, **kwargs)
         self.lamda = lamda
     
-    def forward(self, embeddings:torch.Tensor):
-
+    def forward(self, embeddings:torch.Tensor, labels:torch.Tensor):
+        b, c, h, w = embeddings.shape
         loss = (-self.lamda * self.psd(embeddings=embeddings))
+
+        embeddings = embeddings.view(b, -1)
+        labels = labels.squeeze()
+        num_lbls = labels.size()[0]
+        distance_matrix = torch.cdist(x1=embeddings, x2=embeddings, p=2)
+        distance_matrix = distance_matrix.flatten()[1:].view(num_lbls-1, num_lbls+1)[:,:-1].reshape(num_lbls, num_lbls-1)
+        distance_sm = torch.softmax(input=-distance_matrix, dim=1)
+        
+        for i in range(num_lbls):
+            lbl = labels[i]
+            distance_sm_lbl = distance_sm[i]
+            indices = torch.cat((labels[:i], labels[i+1:]), dim=0)
+            indices_ind = indices==lbl
+            probs = torch.sum(distance_sm_lbl[indices_ind])
+            loss += -torch.log(probs)/200.0
+
         return loss
     
     def psd(self, embeddings:torch.Tensor):
