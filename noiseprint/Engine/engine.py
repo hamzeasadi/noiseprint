@@ -91,7 +91,7 @@ def rgan_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.M
             XG, YG = get_noise(batch_size=b)
             Xhat = X+XG
             noise_k = gen(Xhat.to(dev))
-            loss = disc_crt(noise_k,  YG.to(dev))
+            loss = disc_crt(noise_k.squeeze(),  YG.to(dev))
             disc_opt.zero_grad()
             loss.backward()
             disc_opt.step()
@@ -145,7 +145,7 @@ def rgan_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.M
                 XG, YG = get_noise(batch_size=b)
                 Xhat = X+XG
                 noise_k = gen(Xhat.to(dev))
-                loss = disc_crt(noise_k,  YG.to(dev))
+                loss = disc_crt(noise_k.squeeze(),  YG.to(dev))
                 disc_opt.zero_grad()
                 loss.backward()
                 disc_opt.step()
