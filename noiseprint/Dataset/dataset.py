@@ -38,7 +38,7 @@ class SocDataset(Dataset):
             crop_path = os.path.join(dataset_path, crop_name)
             crop_patches = [f for f in os.listdir(crop_path) if f.startswith("patch")]
             num_patches = len(crop_patches)
-            for i in range(0, num_patches, self.pack_size):
+            for i in range(0, num_patches-self.pack_size+1, self.pack_size):
                 sample = []
                 for j in range(self.pack_size):
                     sample_path = os.path.join(crop_path, crop_patches[i+j])

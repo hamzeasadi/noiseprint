@@ -29,12 +29,12 @@ def main():
 
     parser = argparse.ArgumentParser(prog=os.path.basename(__file__), description="sth")
 
-    parser.add_argument("--dev", type=str, default="cuda")
+    parser.add_argument("--dev", type=str, default="cuda:0")
     parser.add_argument("--lamda", type=float, default=1.0)
-    parser.add_argument("--glr", type=float, default=0.0001)
-    parser.add_argument("--ggamma", type=float, default=0.99)
-    parser.add_argument("--dlr", type=float, default=0.001)
-    parser.add_argument("--dgamma", type=float, default=0.99)
+    parser.add_argument("--glr", type=float, default=0.01)
+    parser.add_argument("--ggamma", type=float, default=0.9)
+    parser.add_argument("--dlr", type=float, default=0.1)
+    parser.add_argument("--dgamma", type=float, default=0.75)
     parser.add_argument("--epochs", type=int, default=1000)
     args = parser.parse_args()
 
@@ -44,16 +44,16 @@ def main():
     loader = create_loader()
     print("loader created!!!")
 
-    Gen = Noiseprint(input_ch=3, output_ch=1, num_layer=15)
+    Gen = Noiseprint(input_ch=3, output_ch=1, num_layer=17)
     gen_crt = NP_Loss(lamda=args.lamda)
     gen_crt.to(dev)
     gen_opt = Adam(params=Gen.parameters(), lr=args.glr)
     gen_sch = ExponentialLR(optimizer=gen_opt, gamma=args.ggamma)
 
     disc = Disc(inch=1)
-    disc_crt = nn.BCEWithLogitsLoss()
+    disc_crt = nn.MSELoss()
     disc_crt.to(dev)
-    disc_opt = Adam(params=disc.parameters(), lr=args.dlr)
+    disc_opt = Adam(params=Gen.parameters(), lr=args.dlr)
     disc_sch = ExponentialLR(optimizer=disc_opt, gamma=args.dgamma)
 
 

@@ -31,11 +31,32 @@ def evaluation(model:nn.Module, video_path:str, base_name:str, num_seq:int=1, pa
         vmin = np.min(out[34:-34,34:-34])
         vmax = np.max(out[34:-34,34:-34])
         plt.imshow(out.clip(vmin,vmax), clim=[vmin,vmax], cmap='gray')
+        # plt.imshow(out, cmap='gray')
         plt.axis('off')
         plt.savefig(os.path.join(paths.report, f"{base_name}.png"), bbox_inches='tight', pad_inches=0)
         plt.close()
 
 
+
+
+
+def img_evaluation(model:nn.Module, base_name:str, paths=Paths()):
+    img_path = "/home/hasadi/project/noiseprintPro/data/dataset/rnd_imgs/inpainting.png"
+    img = Image.open(img_path)
+    img_gray = img.convert("L")
+    img_t = torch.from_numpy(np.asarray(img_gray)/255.0).unsqueeze(dim=0)
+    imgs_name = []
+    model.eval()
+    
+    X = torch.cat((img_t, img_t, img_t), dim=0).unsqueeze(dim=0)
+    out = model(X.type(torch.float32)).detach().squeeze().numpy()
+    vmin = np.min(out[34:-34,34:-34])
+    vmax = np.max(out[34:-34,34:-34])
+    plt.imshow(out.clip(vmin,vmax), clim=[vmin,vmax], cmap='gray')
+    # plt.imshow(out, cmap='gray')
+    plt.axis('off')
+    plt.savefig(os.path.join(paths.report, f"{base_name}.png"), bbox_inches='tight', pad_inches=0)
+    plt.close()
 
 
 
@@ -62,11 +83,11 @@ def main():
     state = torch.load(ckp_path, map_location=torch.device("cpu"))
     print(f"epoch={state['epoch']} loss={state['loss']}")
 
-    model = Noiseprint(input_ch=3, output_ch=1, num_layer=15)
+    model = Noiseprint(input_ch=3, output_ch=1, num_layer=17)
     model.load_state_dict(state['model'])
 
     evaluation(model=model, video_path=video_path, num_seq=num_samples, base_name=ckp_base_name)
-
+    img_evaluation(model=model, base_name=f"{ckp_base_name}_inpaint")
 
 
 

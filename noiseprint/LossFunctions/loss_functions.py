@@ -1,6 +1,8 @@
 """
 loss functions
 """
+from typing import List
+import math
 
 import torch
 from torch import nn
@@ -22,26 +24,30 @@ class NP_Loss(nn.Module):
         self.lamda = lamda
     
     def forward(self, embeddings:torch.Tensor, labels:torch.Tensor):
-        b, c, h, w = embeddings.shape
         loss = (-self.lamda * self.psd(embeddings=embeddings))
-
-        embeddings = embeddings.view(b, -1)
-        labels = labels.squeeze()
-        num_lbls = labels.size()[0]
-        distance_matrix = torch.cdist(x1=embeddings, x2=embeddings, p=2)
-        distance_matrix = distance_matrix.flatten()[1:].view(num_lbls-1, num_lbls+1)[:,:-1].reshape(num_lbls, num_lbls-1)
-        distance_sm = torch.softmax(input=-distance_matrix, dim=1)
-        
-        for i in range(num_lbls):
-            lbl = labels[i]
-            distance_sm_lbl = distance_sm[i]
-            indices = torch.cat((labels[:i], labels[i+1:]), dim=0)
-            indices_ind = indices==lbl
-            probs = torch.sum(distance_sm_lbl[indices_ind])
-            loss += -torch.log(probs)/200.0
-
+        loss += self.prnu_loss(embeddings=embeddings, labels=labels)
         return loss
     
+
+    def prnu_loss(self, embeddings:torch.Tensor, labels:torch.Tensor):
+        """
+        """
+        b, c, h, w = embeddings.shape
+        embeddings = embeddings.view(b, -1)
+        labels = labels.squeeze().type(torch.float32)
+        x_dist = torch.cdist(x1=embeddings, x2=embeddings)
+        x_dist = x_dist.flatten()[1:].view(b-1, b+1)[:,:-1].reshape(b, b-1)
+        x_dist = torch.softmax(-x_dist, dim=1)
+
+        y_dist = torch.cdist(x1=labels.view(-1, 1), x2=labels.view(-1, 1))
+        y_dist = y_dist.flatten()[1:].view(b-1, b+1)[:,:-1].reshape(b, b-1)
+        y_dist = y_dist==0
+        dist = x_dist*y_dist.int()
+        dist = torch.sum(dist, dim=1)
+        dist = torch.mean(torch.clamp(-torch.log(dist+1e-6), min=0, max=100.0))
+        return dist
+    
+
     def psd(self, embeddings:torch.Tensor):
         """
         docs
@@ -53,24 +59,41 @@ class NP_Loss(nn.Module):
         avgpsd =  torch.mean(torch.mul(dft, dft.conj()).real, dim=0)
         loss_psd = torch.clamp((1/k)*torch.sum(torch.log(avgpsd)) - torch.log((1/k)*torch.sum(avgpsd)), min=0.0, max=100.0)
         return loss_psd
+    
 
 
 
 
 
 
-def psd(x:torch.Tensor):
+
+
+
+def prnu_loss(embeddings:torch.Tensor, labels:torch.Tensor):
     """
-    
     """
+    b, c, h, w = embeddings.shape
+    embeddings = embeddings.view(b, -1)
+    labels = labels.squeeze().type(torch.float32)
+    x_dist = torch.cdist(x1=embeddings, x2=embeddings)
+    x_dist = x_dist.flatten()[1:].view(b-1, b+1)[:,:-1].reshape(b, b-1)
+    x_dist = torch.softmax(-x_dist, dim=1)
+
+    y_dist = torch.cdist(x1=labels.view(-1, 1), x2=labels.view(-1, 1))
+    y_dist = y_dist.flatten()[1:].view(6-1, 6+1)[:,:-1].reshape(6, 6-1)
+    y_dist = y_dist==0
+    dist = x_dist*y_dist.int()
+    dist = torch.sum(dist, dim=1)
+    dist = torch.mean(torch.clamp(-torch.log(dist), min=0, max=100.0))
+    return dist
+
+
+
+
     
-    x = 1
 
 
 
-
-
-    
 
 
 
@@ -81,11 +104,28 @@ def main():
     docs
     """
    
+    # x = torch.tensor([
+    #     [1,2,3], [2,2,3],[3,2,3],
+    #     [60,70,80],[61,68,81],[60,75,85]
+    # ], dtype=torch.float32)
 
+    # y = torch.tensor([0,0,0,2,0,2], dtype=torch.float32)
     
+  
+    # x = torch.randn(size=(2, 2))
+    # ones = torch.ones(size=(1, 3, 2,2))
+    # print(x)
+    # print(x*ones)
+    # x, y = get_noise(batch_size=4)
+    
+    x = torch.randn(size=(4, 3, 2, 2))
+    y = torch.randn(size=(4, 1, 2, 2))
+    yhat = (x+y) - x
 
-
-
+    crt = torch.nn.MSELoss()
+    loss = crt(x, yhat)
+    print(loss)
+ 
 
    
 

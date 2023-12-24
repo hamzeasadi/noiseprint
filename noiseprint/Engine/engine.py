@@ -6,6 +6,7 @@ import os
 import sys
 sys.path.append("../../..")
 from typing import List
+import math
 
 import torch
 from torch import nn
@@ -24,6 +25,22 @@ def odd_eve_lbl(batch_size:int):
 
     return odd, even
 
+
+
+
+def get_noise(batch_size:int, in_shape:List=[1,3,64,64]):
+    ones = torch.ones(size=in_shape)
+    AGWN = []
+    awgn_labels = []
+    for i in range(batch_size//4):
+        noise = torch.randn(size=[64, 64])
+        for j in range(4):
+            sigma = torch.randint(low=15, high=45, size=(1,))
+            awgn = noise*sigma/255.0
+            AGWN.append(awgn*ones)
+            awgn_labels.append(awgn.unsqueeze(dim=0))
+    
+    return torch.cat(AGWN, dim=0), torch.cat(awgn_labels, dim=0)
 
 
 
@@ -56,58 +73,99 @@ def np_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, dev:torch.devi
 
 
 
+
+
 def rgan_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.Module,
                disc:nn.Module, disc_opt:Optimizer, disc_crt:nn.Module, disc_sch:nn.Module,
                dataloader:DataLoader, epoch:int, dev:torch.device, paths):
-    
+    file_path = os.path.join(paths.report, "np_loss_log.txt")
     train_loss = 0
     num_batches = len(dataloader)
     gen.to(dev)
-    disc.to(dev)
     gen.train()
-    disc.train()
     cntr = 0
+
+    # if epoch<5:
+    #     for X, Y in dataloader:
+    #         b,_,_,_ = X.shape
+    #         XG, _ = get_noise(batch_size=b)
+    #         Xhat = X+XG
+    #         noise_k = gen(Xhat.to(dev))
+    #         noise_k = (noise_k + torch.ones_like(X.to(dev))) - torch.ones_like(X.to(dev))
+    #         loss = disc_crt(Xhat.to(dev) - X.to(dev),  noise_k)
+    #         disc_opt.zero_grad()
+    #         loss.backward()
+    #         disc_opt.step()
+    #         train_loss += loss.item()
+    #         if cntr%20 == 0:
+    #             if cntr==0:
+    #                 with open(file_path, "w") as log_file:
+    #                     log_file.write(f"epoch={cntr} loss={train_loss/num_batches}\n")
+    #             else:
+    #                 with open(file_path, "a") as log_file:
+    #                     log_file.write(f"epoch={cntr} loss={train_loss/num_batches}\n")
+    #         cntr += 1
+
+    #     if disc_sch is not None:
+    #         disc_sch.step()
+
+    #     state = dict(model=gen.eval().state_dict(), epoch=epoch, loss=train_loss/num_batches)
+    #     torch.save(obj=state, f=os.path.join(paths.model, f"np_noise_ckpoint_{epoch}.pt"))
+
+    # else:
     for X, Y in dataloader:
-        b,c,h,w = X.shape
+
         out = gen(X.to(dev))
-        odd_indices, even_indices = odd_eve_lbl(batch_size=b)
-        fake = out[odd_indices].detach()
-        real = out[even_indices].detach()
-
-        # train discriminator
-        disc_fake = disc(fake)
-        disc_real = disc(real)
-        disc_loss = disc_crt(disc_real - disc_fake.mean(dim=0, keepdim=True), torch.ones_like(disc_real, requires_grad=False))
-        disc_opt.zero_grad()
-        disc_loss.backward()
-        disc_opt.step()
-
-        # train generator
-        disc_fake = disc(out[odd_indices])
-        disc_real = disc(out[even_indices])
-        disc_loss = disc_crt(disc_fake - disc_real.mean(dim=0, keepdim=True), torch.ones_like(disc_real, requires_grad=False))
-        gen_loss = disc_loss + gen_crt(embeddings=out, labels=Y.to(dev))
+        gen_loss = gen_crt(embeddings=out, labels=Y.to(dev))
         gen_opt.zero_grad()
         gen_loss.backward()
         gen_opt.step()
 
         train_loss += gen_loss.item()
 
-        if cntr%100 == 0:
-            print(f"epoch={epoch} loss={gen_loss.item()}")
+        if cntr%20 == 0:
+            if cntr==0:
+                with open(file_path, "w") as log_file:
+                    log_file.write(f"epoch={cntr} loss={gen_loss.item()}\n")
+            else:
+                with open(file_path, "a") as log_file:
+                    log_file.write(f"epoch={cntr} loss={gen_loss.item()}\n")
         cntr += 1
 
 
     if gen_sch is not None:
         gen_sch.step()
     
-    if disc_sch is not None:
-        disc_sch.step()
-
-    
     state = dict(model=gen.eval().state_dict(), epoch=epoch, loss=train_loss/num_batches)
-    torch.save(obj=state, f=os.path.join(paths.model, f"gan_ckpoint_{epoch}.pt"))
-    print(f"epoch={epoch} loss={train_loss/num_batches}")
+    torch.save(obj=state, f=os.path.join(paths.model, f"np_ckpoint_{epoch}.pt"))
+
+    # thresh = int(math.sqrt(epoch))
+    # if thresh%2==0:
+    #     for X, Y in dataloader:
+    #         b,_,_,_ = X.shape
+    #         XG, _ = get_noise(batch_size=b)
+    #         Xhat = X+XG
+    #         noise_k = gen(Xhat.to(dev))
+    #         noise_k = (noise_k + torch.ones_like(X.to(dev))) - torch.ones_like(X.to(dev))
+    #         loss = disc_crt(Xhat.to(dev) - noise_k,  X.to(dev))
+    #         disc_opt.zero_grad()
+    #         loss.backward()
+    #         disc_opt.step()
+    #         train_loss += loss.item()
+
+    #         if cntr%20 == 0:
+    #             if cntr==0:
+    #                 with open(file_path, "w") as log_file:
+    #                     log_file.write(f"epoch={cntr} loss={train_loss/num_batches}\n")
+    #             else:
+    #                 with open(file_path, "a") as log_file:
+    #                     log_file.write(f"epoch={cntr} loss={train_loss/num_batches}\n")
+    #         cntr += 1
+
+    #     if disc_sch is not None:
+    #         disc_sch.step()
+    
+    
 
 
 
