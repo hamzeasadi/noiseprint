@@ -19,11 +19,12 @@ class ConstConv(nn.Module):
     """
     const conv
     """
-    def __init__(self, inch:int, outch:int, ks:int, stride:int, dev:torch.device, *args, **kwargs) -> None:
+    def __init__(self, inch:int, outch:int, ks:int, stride:int, dev:torch.device, num_samples:int, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.dev = dev
         self.ks = ks
         self.inch = inch
+        self.num_samples = num_samples
         self.conv0 = nn.Conv2d(in_channels=inch, out_channels=outch, kernel_size=ks, stride=stride, padding=0, bias=False)
         self.padding = nn.ZeroPad2d(1)
         self.bn = nn.BatchNorm2d(num_features=outch)
@@ -47,7 +48,7 @@ class ConstConv(nn.Module):
     
 
     def _get_data(self):
-        ones = torch.ones(size=(500, self.inch, self.ks, self.ks), dtype=torch.float32)
+        ones = torch.ones(size=(self.num_samples, self.inch, self.ks, self.ks), dtype=torch.float32)
         ones[:, :, self.ks//2, self.ks//2] = 0.0
         zeros = torch.zeros_like(ones)
         zeros[:, :, self.ks//2, self.ks//2] = 1.0
@@ -136,3 +137,15 @@ class MidBlock(nn.Module):
         return self.blk(x)
 
 
+
+
+
+
+
+if __name__ == "__main__":
+
+    net = ConstConv(inch=3, outch=3, ks=3, stride=1, dev="cpu", num_samples=2)
+
+    data = net.data
+
+    print(data)
