@@ -30,11 +30,11 @@ def main():
     parser = argparse.ArgumentParser(prog=os.path.basename(__file__), description="sth")
 
     parser.add_argument("--dev", type=str, default="cuda:0")
-    parser.add_argument("--lamda", type=float, default=1.0)
+    parser.add_argument("--lamda", type=float, default=1.1)
     parser.add_argument("--glr", type=float, default=0.01)
     parser.add_argument("--ggamma", type=float, default=0.9)
-    parser.add_argument("--dlr", type=float, default=0.1)
-    parser.add_argument("--dgamma", type=float, default=0.75)
+    parser.add_argument("--dlr", type=float, default=0.01)
+    parser.add_argument("--dgamma", type=float, default=0.9)
     parser.add_argument("--epochs", type=int, default=1000)
     args = parser.parse_args()
 
