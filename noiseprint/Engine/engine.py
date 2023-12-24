@@ -28,13 +28,13 @@ def odd_eve_lbl(batch_size:int):
 
 
 
-def get_noise(batch_size:int, in_shape:List=[1,3,64,64]):
+def get_noise(batch_size:int, in_shape:List=[1,3,64,64], seq_size=6):
     ones = torch.ones(size=in_shape)
     AGWN = []
     awgn_labels = []
-    for i in range(batch_size//4):
+    for i in range(batch_size//seq_size):
         noise = torch.randn(size=[64, 64])
-        for j in range(4):
+        for j in range(seq_size):
             sigma = torch.randint(low=15, high=45, size=(1,))
             awgn = noise*sigma/255.0
             AGWN.append(awgn*ones)
@@ -88,7 +88,7 @@ def rgan_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.M
     if epoch<5:
         for X, Y in dataloader:
             b,_,_,_ = X.shape
-            XG, YG = get_noise(batch_size=b)
+            XG, YG = get_noise(batch_size=b, seq_size=6)
             Xhat = X+XG
             noise_k = gen(Xhat.to(dev))
             loss = disc_crt(noise_k.squeeze(),  YG.to(dev))
@@ -142,7 +142,7 @@ def rgan_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.M
         if thresh%2==0:
             for X, Y in dataloader:
                 b,_,_,_ = X.shape
-                XG, YG = get_noise(batch_size=b)
+                XG, YG = get_noise(batch_size=b, seq_size=6)
                 Xhat = X+XG
                 noise_k = gen(Xhat.to(dev))
                 loss = disc_crt(noise_k.squeeze(),  YG.to(dev))
