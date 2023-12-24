@@ -47,13 +47,13 @@ def main():
     Gen = Noiseprint(input_ch=3, output_ch=1, num_layer=17)
     gen_crt = NP_Loss(lamda=args.lamda)
     gen_crt.to(dev)
-    gen_opt = Adam(params=Gen.parameters(), lr=args.glr)
+    gen_opt = Adam(params=Gen.parameters(), lr=args.glr, weight_decay=0.00001)
     gen_sch = ExponentialLR(optimizer=gen_opt, gamma=args.ggamma)
 
     disc = Disc(inch=1)
-    disc_crt = nn.MSELoss()
+    disc_crt = nn.MSELoss(reduction='none')
     disc_crt.to(dev)
-    disc_opt = Adam(params=Gen.parameters(), lr=args.dlr)
+    disc_opt = Adam(params=Gen.parameters(), lr=args.dlr, weight_decay=0.00001)
     disc_sch = ExponentialLR(optimizer=disc_opt, gamma=args.dgamma)
 
 

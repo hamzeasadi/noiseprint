@@ -68,7 +68,9 @@ if __name__ == "__main__":
     print(__file__)
 
     model = Noiseprint(input_ch=3, output_ch=1)
-    x = torch.randn(size=(1,1,2,2))*100
-    print(x)
-    xc = torch.clamp(x, min=-6.0, max=6.0)
-    print(xc)
+    criterion = nn.MSELoss(size_average=False)
+    x = torch.randn(size=(1,1,2,2))*2
+    y = torch.randn(size=(1,1,2,2))
+    
+    loss = criterion(x, y)
+    print(loss)
