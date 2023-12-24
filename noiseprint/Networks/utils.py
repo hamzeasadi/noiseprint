@@ -74,7 +74,10 @@ class ConvLayer(nn.Module):
         conv = nn.Conv2d(in_channels=inch, out_channels=outch, kernel_size=ks, stride=stride, bias=bias, padding=0)
         relu = nn.ReLU(inplace=True)
         lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
-        batch_norm = nn.BatchNorm2d(num_features=outch)
+        relu6 = nn.ReLU6(inplace=True)
+        prelu = nn.PReLU()
+        # momentum=0.9, eps=1e-04, affine=True
+        batch_norm = nn.BatchNorm2d(num_features=outch, momentum=0.9, eps=1e-4, affine=True)
 
         if padding!=0:
             modulelist.append(pad)
@@ -87,6 +90,10 @@ class ConvLayer(nn.Module):
             modulelist.append(relu)
         elif act == "leaky":
             modulelist.append(lrelu)
+        elif act == "relu6":
+            modulelist.append(relu6)
+        elif act == "prelu":
+            modulelist.append(prelu)
 
         self.blk = nn.Sequential(*modulelist)
 

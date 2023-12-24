@@ -28,7 +28,7 @@ class Noiseprint(nn.Module):
         x = self.fblk(x)
         x = self.mblk(x)
         x = self.hblk(x)
-
+        x = torch.clamp(x, min=-1.1, max=1.1)
         return x
     
 
@@ -68,8 +68,7 @@ if __name__ == "__main__":
     print(__file__)
 
     model = Noiseprint(input_ch=3, output_ch=1)
-    x = torch.randn(size=(1,3,64,64))
-
-    out = model(x)
-    print(model)
-    print(out.shape)
+    x = torch.randn(size=(1,1,2,2))*100
+    print(x)
+    xc = torch.clamp(x, min=-6.0, max=6.0)
+    print(xc)
