@@ -51,7 +51,7 @@ def main():
     gen_sch = ExponentialLR(optimizer=gen_opt, gamma=args.ggamma)
 
     disc = Disc(inch=1)
-    disc_crt = nn.MSELoss(reduction='sum')
+    disc_crt = nn.MSELoss(reduction='mean')
     disc_crt.to(dev)
     disc_opt = Adam(params=Gen.parameters(), lr=args.dlr, weight_decay=0.00001)
     disc_sch = ExponentialLR(optimizer=disc_opt, gamma=args.dgamma)

@@ -35,7 +35,7 @@ def get_noise(batch_size:int, in_shape:List=[1,3,64,64], seq_size=6):
     for i in range(batch_size//seq_size):
         noise = torch.randn(size=[64, 64])
         for j in range(seq_size):
-            sigma = torch.randint(low=15, high=45, size=(1,))
+            sigma = torch.randint(low=18, high=45, size=(1,))
             awgn = noise*sigma/255.0
             AGWN.append(awgn*ones)
             awgn_labels.append(awgn.unsqueeze(dim=0))
@@ -99,10 +99,10 @@ def rgan_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.M
             if cntr%20 == 0:
                 if cntr==0:
                     with open(file_path, "w") as log_file:
-                        log_file.write(f"epoch={cntr} loss={train_loss/num_batches}\n")
+                        log_file.write(f"epoch={cntr} loss={loss.item()}\n")
                 else:
                     with open(file_path, "a") as log_file:
-                        log_file.write(f"epoch={cntr} loss={train_loss/num_batches}\n")
+                        log_file.write(f"epoch={cntr} loss={loss.item()}\n")
             cntr += 1
 
         if disc_sch is not None:
@@ -154,10 +154,10 @@ def rgan_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.M
                 if cntr%20 == 0:
                     if cntr==0:
                         with open(file_path, "w") as log_file:
-                            log_file.write(f"epoch={cntr} loss={train_loss/num_batches}\n")
+                            log_file.write(f"epoch={cntr} loss={loss.item()}\n")
                     else:
                         with open(file_path, "a") as log_file:
-                            log_file.write(f"epoch={cntr} loss={train_loss/num_batches}\n")
+                            log_file.write(f"epoch={cntr} loss={loss.item()}\n")
                 cntr += 1
 
             if disc_sch is not None:

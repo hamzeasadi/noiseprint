@@ -28,7 +28,7 @@ class Noiseprint(nn.Module):
         x = self.fblk(x)
         x = self.mblk(x)
         x = self.hblk(x)
-        x = torch.clamp(x, min=-1.1, max=1.1)
+        x = torch.clamp(x, min=-6.1, max=6.1)
         return x
     
 
@@ -68,9 +68,12 @@ if __name__ == "__main__":
     print(__file__)
 
     model = Noiseprint(input_ch=3, output_ch=1)
-    criterion = nn.MSELoss(size_average=False)
-    x = torch.randn(size=(1,1,2,2))*2
-    y = torch.randn(size=(1,1,2,2))
+    # criterion = nn.MSELoss(size_average=False)
+    # x = torch.randn(size=(1,1,2,2))*2
+    # y = torch.randn(size=(1,1,2,2))
     
-    loss = criterion(x, y)
-    print(loss)
+    # loss = criterion(x, y)
+    # print(loss)
+    # noise = torch.FloatTensor(size=[1,1,3,3]).normal_(mean=0, std=25/255.)
+    noise = torch.randn(size=[1,1,3,3])*(255/255.0)
+    print(noise)
