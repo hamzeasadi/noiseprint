@@ -163,4 +163,6 @@ data/
 noiseprint/config
 noiseprint/config/*
 practice.py
+noiseprint/Validate
+noiseprint/Validate/*
 
