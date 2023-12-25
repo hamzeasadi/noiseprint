@@ -39,7 +39,6 @@ def evaluation(model:nn.Module, video_path:str, base_name:str, num_seq:int=1, pa
 
 
 
-
 def img_evaluation(model:nn.Module, base_name:str, paths=Paths()):
     img_path = "/home/hasadi/project/noiseprintPro/data/dataset/rnd_imgs/inpainting.png"
     img = Image.open(img_path)

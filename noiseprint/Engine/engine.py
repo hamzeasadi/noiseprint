@@ -85,83 +85,33 @@ def rgan_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.M
     gen.train()
     cntr = 0
 
-    if epoch<5:
-        for X, Y in dataloader:
-            b,_,_,_ = X.shape
-            XG, YG = get_noise(batch_size=b, seq_size=6)
-            Xhat = X+XG
-            noise_k = gen(Xhat.to(dev))
-            loss = disc_crt(noise_k.squeeze(),  YG.to(dev))
-            disc_opt.zero_grad()
-            loss.backward()
-            disc_opt.step()
-            train_loss += loss.item()
-            if cntr%20 == 0:
-                if cntr==0:
-                    with open(file_path, "w") as log_file:
-                        log_file.write(f"epoch={cntr} loss={loss.item()}\n")
-                else:
-                    with open(file_path, "a") as log_file:
-                        log_file.write(f"epoch={cntr} loss={loss.item()}\n")
-            cntr += 1
+    for X, Y in dataloader:
 
-        if disc_sch is not None:
-            disc_sch.step()
+        out = gen(X.to(dev))
+        gen_loss = gen_crt(embeddings=out, labels=Y.to(dev))
+        gen_opt.zero_grad()
+        gen_loss.backward()
+        gen_opt.step()
 
-        state = dict(model=gen.eval().state_dict(), epoch=epoch, loss=train_loss/num_batches)
-        torch.save(obj=state, f=os.path.join(paths.model, f"np_noise_ckpoint_{epoch}.pt"))
+        train_loss += gen_loss.item()
 
-    else:
-        for X, Y in dataloader:
-
-            out = gen(X.to(dev))
-            gen_loss = gen_crt(embeddings=out, labels=Y.to(dev))
-            gen_opt.zero_grad()
-            gen_loss.backward()
-            gen_opt.step()
-
-            train_loss += gen_loss.item()
-
-            if cntr%20 == 0:
-                if cntr==0:
-                    with open(file_path, "w") as log_file:
-                        log_file.write(f"epoch={cntr} loss={gen_loss.item()}\n")
-                else:
-                    with open(file_path, "a") as log_file:
-                        log_file.write(f"epoch={cntr} loss={gen_loss.item()}\n")
-            cntr += 1
+        if cntr%20 == 0:
+            if cntr==0:
+                with open(file_path, "w") as log_file:
+                    log_file.write(f"epoch={cntr} loss={gen_loss.item()}\n")
+            else:
+                with open(file_path, "a") as log_file:
+                    log_file.write(f"epoch={cntr} loss={gen_loss.item()}\n")
+        cntr += 1
 
 
-        if gen_sch is not None:
-            gen_sch.step()
+    if gen_sch is not None:
+        gen_sch.step()
 
-        state = dict(model=gen.eval().state_dict(), epoch=epoch, loss=train_loss/num_batches)
-        torch.save(obj=state, f=os.path.join(paths.model, f"np_ckpoint_{epoch}.pt"))
+    state = dict(model=gen.eval().state_dict(), epoch=epoch, loss=train_loss/num_batches)
+    torch.save(obj=state, f=os.path.join(paths.model, f"np_ckpoint_{epoch}.pt"))
 
-        thresh = int(math.sqrt(epoch))
-        if thresh%2==0:
-            for X, Y in dataloader:
-                b,_,_,_ = X.shape
-                XG, YG = get_noise(batch_size=b, seq_size=6)
-                Xhat = X+XG
-                noise_k = gen(Xhat.to(dev))
-                loss = disc_crt(noise_k.squeeze(),  YG.to(dev))
-                disc_opt.zero_grad()
-                loss.backward()
-                disc_opt.step()
-                train_loss += loss.item()
-
-                if cntr%20 == 0:
-                    if cntr==0:
-                        with open(file_path, "w") as log_file:
-                            log_file.write(f"epoch={cntr} loss={loss.item()}\n")
-                    else:
-                        with open(file_path, "a") as log_file:
-                            log_file.write(f"epoch={cntr} loss={loss.item()}\n")
-                cntr += 1
-
-            if disc_sch is not None:
-                disc_sch.step()
+   
     
     
 

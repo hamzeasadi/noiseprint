@@ -21,14 +21,14 @@ class Noiseprint(nn.Module):
         super().__init__()
         self.fblk = FirstBloack(inch=input_ch)
         self.mblk = MidBlock(ch=64, num_layers=num_layer)
-        self.hblk = ConvLayer(inch=64, outch=output_ch, bn=False, act="None")
+        self.hblk = ConvLayer(inch=64, outch=output_ch, bn=False, act="none")
     
 
     def forward(self, x):
         x = self.fblk(x)
         x = self.mblk(x)
         x = self.hblk(x)
-        x = torch.clamp(x, min=-6.1, max=6.1)
+        x = torch.clamp(x, min=-6.0, max=6.0)
         return x
     
 
