@@ -28,6 +28,7 @@ def evaluation(model:nn.Module, video_path:str, base_name:str, num_seq:int=1, pa
         intensity = rgb2gray_pack(pack=sample_pack, num_frame_per_pack=3)
         X = torch.from_numpy(intensity).unsqueeze(dim=0)
         out = model(X).detach().squeeze().numpy()
+        out = out['out']
         vmin = np.min(out[34:-34,34:-34])
         vmax = np.max(out[34:-34,34:-34])
         plt.imshow(out.clip(vmin,vmax), clim=[vmin,vmax], cmap='gray')
@@ -50,6 +51,7 @@ def img_evaluation(model:nn.Module, base_name:str, paths=Paths()):
     
     X = torch.cat((img_t, img_t, img_t), dim=0).unsqueeze(dim=0)
     out = model(X.type(torch.float32)).detach().squeeze().numpy()
+    out = out['out']
     vmin = np.min(out[34:-34,34:-34])
     vmax = np.max(out[34:-34,34:-34])
     plt.imshow(out.clip(vmin,vmax), clim=[vmin,vmax], cmap='gray')
