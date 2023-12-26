@@ -17,7 +17,7 @@ from noiseprint.noiseprint.Dataset.dataset import create_loader
 from noiseprint.noiseprint.Utils.gutils import Paths
 from noiseprint.noiseprint.Networks.network import Noiseprint, Disc
 from noiseprint.noiseprint.LossFunctions.loss_functions import NP_Loss
-from noiseprint.noiseprint.Engine.engine import rgan_train
+from noiseprint.noiseprint.Engine.engine import mynp_train
 
 
 
@@ -68,7 +68,7 @@ def main():
 
 
     for epoch in range(args.epochs):
-        rgan_train(gen=Gen, gen_opt=gen_opt, gen_crt=gen_crt, gen_sch=gen_sch,
+        mynp_train(gen=Gen, gen_opt=gen_opt, gen_crt=gen_crt, gen_sch=gen_sch,
                    disc=disc, disc_opt=disc_opt, disc_crt=disc_crt, disc_sch=disc_sch,
                    dataloader=loader, epoch=epoch, dev=dev, paths=paths)
 
