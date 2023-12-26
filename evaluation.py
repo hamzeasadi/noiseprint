@@ -83,7 +83,7 @@ def main():
     model = Noiseprint(input_ch=3, output_ch=1, num_layer=17)
     model.load_state_dict(state['model'])
 
-    # evaluation(model=model, video_path=video_path, num_seq=num_samples, base_name=ckp_base_name)
+    evaluation(model=model, video_path=video_path, num_seq=num_samples, base_name=ckp_base_name)
     img_evaluation(model=model, base_name=f"{ckp_base_name}_inpaint")
 
 
