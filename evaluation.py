@@ -79,7 +79,7 @@ def main():
     video_path = os.path.join(paths.dataset, "valid", video_name)
 
     ckp_base_name = f"{args.ckp_name}_{args.ckp_num}"
-    ckp_path = os.path.join(paths.model, f"{ckp_base_name}.pt")
+    ckp_path = os.path.join(paths.model, "mynp", f"{ckp_base_name}.pt")
     state = torch.load(ckp_path, map_location=torch.device("cpu"))
     print(f"epoch={state['epoch']} loss={state['loss']}")
 

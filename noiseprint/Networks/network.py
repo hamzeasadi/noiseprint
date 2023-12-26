@@ -9,7 +9,7 @@ import torch
 from torch import nn
 
 from noiseprint.noiseprint.Networks.utils import FirstBloack
-from noiseprint.noiseprint.Networks.utils import ConvLayer
+from noiseprint.noiseprint.Networks.utils import ConvLayer, ConstConv
 from noiseprint.noiseprint.Networks.utils import MidBlock
 
 
@@ -17,19 +17,29 @@ from noiseprint.noiseprint.Networks.utils import MidBlock
 
 class Noiseprint(nn.Module):
     """docs"""
-    def __init__(self, input_ch, output_ch, num_layer:int=15) -> None:
+    def __init__(self, input_ch, output_ch, const:bool, dev:torch.device, num_layer:int=15) -> None:
         super().__init__()
-        self.fblk = FirstBloack(inch=input_ch)
+        if const:
+            self.fblk = ConstConv(inch=input_ch, outch=64, ks=3, stride=1, dev=dev, num_samples=600)
+        else:
+            self.fblk = FirstBloack(inch=input_ch)
         self.mblk = MidBlock(ch=64, num_layers=num_layer)
         self.hblk = ConvLayer(inch=64, outch=output_ch, bn=False, act="None")
     
 
     def forward(self, x):
-        x = self.fblk(x)
-        x = self.mblk(x)
-        x = self.hblk(x)
-        x = torch.clamp(x, min=-6.1, max=6.1)
-        return x
+        if self.training:
+            outconst = self.fblk(x)
+            x = self.mblk(outconst['out'])
+            x = self.hblk(x)
+            x = torch.clamp(x, min=-6.1, max=6.1)
+            return dict(out=x, out0=outconst['out0'], out1=outconst['out1'])
+        else:
+            outconst = self.fblk(x)
+            x = self.mblk(outconst['out'])
+            x = self.hblk(x)
+            x = torch.clamp(x, min=-6.1, max=6.1)
+            return dict(out=x)
     
 
 
@@ -67,13 +77,10 @@ class Disc(nn.Module):
 if __name__ == "__main__":
     print(__file__)
 
-    model = Noiseprint(input_ch=3, output_ch=1)
-    # criterion = nn.MSELoss(size_average=False)
-    # x = torch.randn(size=(1,1,2,2))*2
-    # y = torch.randn(size=(1,1,2,2))
+    model = Noiseprint(input_ch=3, output_ch=1, const=True, dev=torch.device("cpu"))
     
-    # loss = criterion(x, y)
-    # print(loss)
-    # noise = torch.FloatTensor(size=[1,1,3,3]).normal_(mean=0, std=25/255.)
-    noise = torch.randn(size=[1,1,3,3])*(255/255.0)
-    print(noise)
+    x = torch.randn(size=(1,3,64,64))
+
+    model.eval()
+    out = model(x)
+    print(out)

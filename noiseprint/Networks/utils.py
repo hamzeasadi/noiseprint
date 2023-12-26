@@ -26,7 +26,7 @@ class ConstConv(nn.Module):
         self.inch = inch
         self.num_samples = num_samples
         self.conv0 = nn.Conv2d(in_channels=inch, out_channels=outch, kernel_size=ks, stride=stride, padding=0, bias=False)
-        self.padding = nn.ZeroPad2d(1)
+        self.padding = nn.ZeroPad2d(ks//2)
         self.bn = nn.BatchNorm2d(num_features=outch)
         self.act = nn.ReLU()
         self.data = self._get_data()
@@ -145,7 +145,22 @@ class MidBlock(nn.Module):
 if __name__ == "__main__":
 
     net = ConstConv(inch=3, outch=3, ks=3, stride=1, dev="cpu", num_samples=2)
+    x = torch.randn(size=(1,3,16,16))
+    crt0 = nn.MSELoss()
+    crt1 = nn.BCEWithLogitsLoss()
+    opt = torch.optim.Adam(params=net.parameters(), lr=0.01)
 
-    data = net.data
+    net.train()
+    for epoch in range(22400):
+        out = net(x)
+        loss0 = crt0(out['out0']+out['out1'], torch.zeros_like(out['out0'], requires_grad=False))
+        loss1 = crt1(0.1*out['out0'], torch.zeros_like(out['out1'], requires_grad=False))
 
-    print(data)
+        loss = loss0 + loss1
+
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+
+        if epoch%1000 == 0:
+            print(net.conv0.weight.data)

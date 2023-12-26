@@ -32,10 +32,11 @@ def main():
     parser.add_argument("--dev", type=str, default="cuda:0")
     parser.add_argument("--lamda", type=float, default=1.1)
     parser.add_argument("--glr", type=float, default=0.01)
-    parser.add_argument("--ggamma", type=float, default=0.9)
+    parser.add_argument("--ggamma", type=float, default=0.95)
     parser.add_argument("--dlr", type=float, default=0.01)
     parser.add_argument("--dgamma", type=float, default=0.9)
     parser.add_argument("--epochs", type=int, default=1000)
+    parser.add_argument("--ckp_num", type=int, default=111)
     args = parser.parse_args()
 
     paths = Paths()
@@ -44,11 +45,16 @@ def main():
     loader = create_loader()
     print("loader created!!!")
 
-    Gen = Noiseprint(input_ch=3, output_ch=1, num_layer=17)
+    Gen = Noiseprint(input_ch=3, output_ch=1, num_layer=15, const=True, dev=dev)
     gen_crt = NP_Loss(lamda=args.lamda)
     gen_crt.to(dev)
     gen_opt = Adam(params=Gen.parameters(), lr=args.glr, weight_decay=0.00001)
     gen_sch = ExponentialLR(optimizer=gen_opt, gamma=args.ggamma)
+
+    if args.ckp_num != 111:
+        state = torch.load(os.path.join(paths.model, "mynp", f"np_ckpoint_{args.ckp_num}.pt"), map_location='cpu')
+        Gen.load_state_dict(state['model'])
+        Gen.to(dev)
 
     disc = Disc(inch=1)
     disc_crt = nn.MSELoss(reduction='mean')
