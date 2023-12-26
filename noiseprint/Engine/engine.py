@@ -93,7 +93,7 @@ def mynp_train(gen:nn.Module, gen_opt:Optimizer, gen_crt:nn.Module, gen_sch:nn.M
         out = gen(X.to(dev))
         gen_loss = gen_crt(embeddings=out['out'], labels=Y.to(dev))
         loss0 = crt0(out['out0'] + out['out1'], torch.zeros_like(out['out0'], requires_grad=False))
-        loss1 = crt1(out['out0'], torch.zeros_like(out['out0'], requires_grad=False))
+        loss1 = crt1(0.1*out['out0'], torch.zeros_like(out['out0'], requires_grad=False))
         loss = gen_loss + loss0 + loss1
         gen_opt.zero_grad()
         loss.backward()
