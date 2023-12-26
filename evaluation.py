@@ -42,13 +42,11 @@ def evaluation(model:nn.Module, video_path:str, base_name:str, num_seq:int=1, pa
 def img_evaluation(model:nn.Module, base_name:str, paths=Paths()):
     img_path = "/home/hasadi/project/noiseprintPro/data/dataset/rnd_imgs/inpainting.png"
     img = Image.open(img_path)
-    img_gray = img.convert("L")
-    img_t = torch.from_numpy(np.asarray(img_gray)/255.0).unsqueeze(dim=0)
-    imgs_name = []
+    img = np.asarray(img)/255.0
+    img_t = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(dim=0)
     model.eval()
-    
-    X = torch.cat((img_t, img_t, img_t), dim=0).unsqueeze(dim=0)
-    out = model(X.type(torch.float32)).detach().squeeze().numpy()
+
+    out = model(img_t.type(torch.float32)).detach().squeeze().numpy()
     vmin = np.min(out[34:-34,34:-34])
     vmax = np.max(out[34:-34,34:-34])
     # plt.imshow(out.clip(vmin,vmax), clim=[vmin,vmax], cmap='gray')
@@ -85,7 +83,7 @@ def main():
     model = Noiseprint(input_ch=3, output_ch=1, num_layer=17)
     model.load_state_dict(state['model'])
 
-    evaluation(model=model, video_path=video_path, num_seq=num_samples, base_name=ckp_base_name)
+    # evaluation(model=model, video_path=video_path, num_seq=num_samples, base_name=ckp_base_name)
     img_evaluation(model=model, base_name=f"{ckp_base_name}_inpaint")
 
 
